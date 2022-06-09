@@ -1,4 +1,3 @@
 # LvDBWrapper
 
-A description of this package.
-# LvDBWrapper
+A Objective-C++ wrapper for leveldb.
