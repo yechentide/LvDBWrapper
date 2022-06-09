@@ -1,4 +1,4 @@
-#import "LvDBWrapper.h"
+#import "LvDB.h"
 
 #import <Foundation/Foundation.h>
 #import <iostream>
@@ -26,7 +26,7 @@ int32_t get_int_value(leveldb::Slice slice, uint32_t offset) {
 
 /* ---------- ---------- ---------- ---------- ---------- ---------- ---------- */
 
-@implementation LvDBWrapper
+@implementation LvDB
 
 leveldb::DB* db;
 leveldb::Options options;

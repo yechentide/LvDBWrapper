@@ -1,9 +1,9 @@
-#ifndef LvDBWrapper_h
-#define LvDBWrapper_h
+#ifndef LvDB_h
+#define LvDB_h
 
 #import <Foundation/Foundation.h>
 
-@interface LvDBWrapper : NSObject
+@interface LvDB : NSObject
 
 - (id)initWithDBPath:(NSString *)path;
 
@@ -18,4 +18,4 @@
 
 @end
 
-#endif /* LvDBWrapper_h */
+#endif /* LvDB_h */
