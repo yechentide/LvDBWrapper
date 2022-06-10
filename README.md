@@ -20,7 +20,6 @@ let package = Package(
         .package(url: "https://github.com/yechentide/LvDBWrapper", branch: "main")
     ],
     targets: [
-        //.testTarget(name: "MCParserCLITests", dependencies: ["MCParserCLICore"]),
         .executableTarget(name: "Demo", dependencies: [
             .product(name: "LvDBWrapper", package: "LvDBWrapper")
         ]),
