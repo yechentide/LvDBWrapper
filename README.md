@@ -5,7 +5,7 @@ A Objective-C++ wrapper for leveldb.
 ## Usage
 
 Package.swift  
-(you can also use SPM throuth Xcode)
+(you can also use SPM from Xcode)
 ```swift
 let package = Package(
     name: "Demo",
