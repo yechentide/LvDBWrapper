@@ -51,7 +51,7 @@ Each xcframework contains 3 static .a files, which for iOS(arm64), MacOS(intel),
 For MacOS projects, you can use this package directly.
 
 For iOS projects, you need to do some additional work.  
-The static libraried for iOS platform, are built with my personal apple team account.  
+The static libraries for iOS platform, are built with my personal apple team account.  
 Maybe my account will expire some day and I can't and won't offer any guarantees.  
 So if your projects is for iOS, you must rebuild libz.a and libleveldb.a for iOS.  
 In this case, please replace the following files:  
