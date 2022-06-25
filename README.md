@@ -40,10 +40,10 @@ guard let keyDataArray = db.getAllKeys() as? [Data] else { ... }
 This package wrapped 2 c++ libraries: libz & libleveldb.  
 Each xcframework contains 3 static .a files, which for iOS(arm64), MacOS(intel), and MacOS(apple silicon).
 
-|                      |iOS(arm64)   |MacOS(x86_64)|MacOS(arm64) |Simulator    |
-|----------------------|:-----------:|:-----------:|:-----------:|:-----------:|
-|libz.xcframework      |      ✔︎      |      ✔︎      |      ✔︎      |      ×      |
-|libleveldb.xcframework|      ✔︎      |      ✔︎      |      ✔︎      |      ×      |
+|                        | iOS(arm64) | MacOS(x86_64) | MacOS(arm64) | Simulator(x86) | Simulator(arm64) |
+| ---------------------- | :--------: | :-----------: | :----------: | :------------: | :--------------: |
+| libz.xcframework       |     ✔︎      |       ✔︎       |      ✔︎       |       ✔︎        |        ×         |
+| libleveldb.xcframework |     ✔︎      |       ✔︎       |      ✔︎       |       ✔︎        |        ×         |
 
 ### attention
 
@@ -56,3 +56,15 @@ So if your projects is for iOS, you must rebuild libz.a and libleveldb.a for iOS
 In this case, please replace the following files:  
 `Frameworks/libz.xcframework/ios-arm64/liba.a`  
 `Frameworks/libleveldb.xcframework/ios-arm64/libleveldb.a`
+
+### Build XCFramework yourself
+
+Just run the script and add teams or change the minimum version when needed. It's so easy!
+```shell
+git clone https://github.com/yechentide/LvDBWrapper.git
+cd LvDBWrapper/scripts
+chmod u+x build.sh
+./build.sh
+```
+
+If you get the xcframeworks, you can fork this repository, and swap xcframeworks in `Frameworks` directory.
