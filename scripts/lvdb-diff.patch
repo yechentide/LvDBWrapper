@@ -1,0 +1,689 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 52e9edb..60c6656 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,10 +1,5 @@
+ cmake_minimum_required(VERSION 3.2)
+ 
+-if (WIN32)
+-	# set windows 7 as the minimum version
+-	add_definitions(-D_WIN32_WINNT=0x0601)
+-endif()
+-
+ project(leveldb)
+ 
+ include(CheckCXXCompilerFlag)
+@@ -66,18 +61,14 @@ if (UNIX)
+     else()
+         message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+     endif()
+-
+-elseif (WIN32)
+-    list(APPEND SOURCES port/port_win.cc)
+-    list(APPEND SOURCES util/env_win.cc)
+-    list(APPEND SOURCES util/win_logger.cc)
+-    add_definitions(-DLEVELDB_PLATFORM_WINDOWS "-DDLLX=__declspec(dllexport)")
+ endif()
+ 
+-add_library(leveldb SHARED ${SOURCES})
++# find_package(ZLIB REQUIRED)
++# if (ZLIB_FOUND)
++#     include_directories( ${ZLIB_INCLUDE_DIRS} )
++#     target_link_libraries( leveldb ${ZLIB_LIBRARIES} )
++# endif(ZLIB_FOUND)
+ 
+-find_package(ZLIB REQUIRED)
+-if (ZLIB_FOUND)
+-    include_directories( ${ZLIB_INCLUDE_DIRS} )
+-    target_link_libraries( leveldb ${ZLIB_LIBRARIES} )
+-endif(ZLIB_FOUND)
++add_library(leveldb STATIC ${SOURCES})
++target_include_directories( leveldb PUBLIC {{libz_include}} )
++target_link_libraries( leveldb {{libz_static}} )
+diff --git a/db/db_impl.cc b/db/db_impl.cc
+index a20072b..1b9171e 100644
+--- a/db/db_impl.cc
++++ b/db/db_impl.cc
+@@ -1610,7 +1610,7 @@ Status DB::Open(const Options& options, const std::string& dbname,
+ Snapshot::~Snapshot() {
+ }
+ 
+-DLLX Status DestroyDB(const std::string& dbname, const Options& options) {
++Status DestroyDB(const std::string& dbname, const Options& options) {
+   Env* env = options.env;
+   std::vector<std::string> filenames;
+   // Ignore error in case directory does not exist
+diff --git a/db/repair.cc b/db/repair.cc
+index b2b1098..4cd4bb0 100644
+--- a/db/repair.cc
++++ b/db/repair.cc
+@@ -453,7 +453,7 @@ class Repairer {
+ };
+ }  // namespace
+ 
+-DLLX Status RepairDB(const std::string& dbname, const Options& options) {
++Status RepairDB(const std::string& dbname, const Options& options) {
+   Repairer repairer(dbname, options);
+   return repairer.Run();
+ }
+diff --git a/db/version_set.cc b/db/version_set.cc
+index 9aea295..728c87f 100644
+--- a/db/version_set.cc
++++ b/db/version_set.cc
+@@ -21,7 +21,7 @@
+ namespace leveldb {
+ 
+ static int TargetFileSize(const Options* options) {
+-  return options->max_file_size;
++  return static_cast<int>(options->max_file_size);
+ }
+ 
+ // Maximum bytes of overlaps in grandparent (i.e., level+2) before we
+diff --git a/include/leveldb/cache.h b/include/leveldb/cache.h
+index a3a7bd3..6819d5b 100644
+--- a/include/leveldb/cache.h
++++ b/include/leveldb/cache.h
+@@ -23,13 +23,13 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Cache;
++class Cache;
+ 
+ // Create a new cache with a fixed size capacity.  This implementation
+ // of Cache uses a least-recently-used eviction policy.
+-extern DLLX Cache* NewLRUCache(size_t capacity);
++extern Cache* NewLRUCache(size_t capacity);
+ 
+-class DLLX Cache {
++class Cache {
+  public:
+   Cache() { }
+ 
+@@ -38,7 +38,7 @@ class DLLX Cache {
+   virtual ~Cache();
+ 
+   // Opaque handle to an entry stored in the cache.
+-  struct DLLX Handle { };
++  struct Handle { };
+ 
+   // Insert a mapping from key->value into the cache and assign it
+   // the specified charge against the total cache capacity.
+@@ -97,7 +97,7 @@ class DLLX Cache {
+   void LRU_Append(Handle* e);
+   void Unref(Handle* e);
+ 
+-  struct DLLX Rep;
++  struct Rep;
+   Rep* rep_;
+ 
+   // No copying allowed
+diff --git a/include/leveldb/comparator.h b/include/leveldb/comparator.h
+index 60f99e0..556b984 100644
+--- a/include/leveldb/comparator.h
++++ b/include/leveldb/comparator.h
+@@ -9,13 +9,13 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Slice;
++class Slice;
+ 
+ // A Comparator object provides a total order across slices that are
+ // used as keys in an sstable or a database.  A Comparator implementation
+ // must be thread-safe since leveldb may invoke its methods concurrently
+ // from multiple threads.
+-class DLLX Comparator {
++class Comparator {
+  public:
+   virtual ~Comparator();
+ 
+diff --git a/include/leveldb/compressor.h b/include/leveldb/compressor.h
+index 793681d..08906ed 100644
+--- a/include/leveldb/compressor.h
++++ b/include/leveldb/compressor.h
+@@ -7,9 +7,9 @@
+ #include <memory>
+ 
+ namespace leveldb {
+-	class DLLX Slice;
++	class Slice;
+ 
+-	class DLLX Compressor
++	class Compressor
+ 	{
+ 	public:
+ 
+diff --git a/include/leveldb/db.h b/include/leveldb/db.h
+index 31df217..21b8fdb 100644
+--- a/include/leveldb/db.h
++++ b/include/leveldb/db.h
+@@ -16,21 +16,21 @@ namespace leveldb {
+ static const int kMajorVersion = 1;
+ static const int kMinorVersion = 20;
+ 
+-struct DLLX Options;
+-struct DLLX ReadOptions;
+-struct DLLX WriteOptions;
+-class DLLX WriteBatch;
++struct Options;
++struct ReadOptions;
++struct WriteOptions;
++class WriteBatch;
+ 
+ // Abstract handle to particular state of a DB.
+ // A Snapshot is an immutable object and can therefore be safely
+ // accessed from multiple threads without any external synchronization.
+-class DLLX Snapshot {
++class Snapshot {
+  protected:
+   virtual ~Snapshot();
+ };
+ 
+ // A range of keys
+-struct DLLX Range {
++struct Range {
+   Slice start;          // Included in the range
+   Slice limit;          // Not included in the range
+ 
+@@ -41,7 +41,7 @@ struct DLLX Range {
+ // A DB is a persistent ordered map from keys to values.
+ // A DB is safe for concurrent access from multiple threads without
+ // any external synchronization.
+-class DLLX DB {
++class DB {
+  public:
+   // Open the database with the specified "name".
+   // Stores a pointer to a heap-allocated database in *dbptr and returns
+@@ -156,13 +156,13 @@ class DLLX DB {
+ 
+ // Destroy the contents of the specified database.
+ // Be very careful using this method.
+-extern DLLX Status DestroyDB(const std::string& name, const Options& options);
++extern Status DestroyDB(const std::string& name, const Options& options);
+ 
+ // If a DB cannot be opened, you may attempt to call this method to
+ // resurrect as much of the contents of the database as possible.
+ // Some data may be lost, so be careful when calling this function
+ // on a database that contains important information.
+-extern DLLX Status RepairDB(const std::string& dbname, const Options& options);
++extern Status RepairDB(const std::string& dbname, const Options& options);
+ 
+ }  // namespace leveldb
+ 
+diff --git a/include/leveldb/decompress_allocator.h b/include/leveldb/decompress_allocator.h
+index 937918f..c8e746c 100644
+--- a/include/leveldb/decompress_allocator.h
++++ b/include/leveldb/decompress_allocator.h
+@@ -8,7 +8,7 @@
+ #include <string>
+ 
+ namespace leveldb {
+-	class DLLX DecompressAllocator {
++	class DecompressAllocator {
+ 	public:
+ 		virtual ~DecompressAllocator();
+ 
+diff --git a/include/leveldb/env.h b/include/leveldb/env.h
+index e55d36d..cb8b6a4 100644
+--- a/include/leveldb/env.h
++++ b/include/leveldb/env.h
+@@ -21,14 +21,14 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX FileLock;
+-class DLLX Logger;
+-class DLLX RandomAccessFile;
+-class DLLX SequentialFile;
+-class DLLX Slice;
+-class DLLX WritableFile;
+-
+-class DLLX Env {
++class FileLock;
++class Logger;
++class RandomAccessFile;
++class SequentialFile;
++class Slice;
++class WritableFile;
++
++class Env {
+  public:
+   Env() { }
+   virtual ~Env();
+@@ -169,7 +169,7 @@ class DLLX Env {
+ };
+ 
+ // A file abstraction for reading sequentially through a file
+-class DLLX SequentialFile {
++class SequentialFile {
+  public:
+   SequentialFile() { }
+   virtual ~SequentialFile();
+@@ -200,7 +200,7 @@ class DLLX SequentialFile {
+ };
+ 
+ // A file abstraction for randomly reading the contents of a file.
+-class DLLX RandomAccessFile {
++class RandomAccessFile {
+  public:
+   RandomAccessFile() { }
+   virtual ~RandomAccessFile();
+@@ -226,7 +226,7 @@ class DLLX RandomAccessFile {
+ // A file abstraction for sequential writing.  The implementation
+ // must provide buffering since callers may append small fragments
+ // at a time to the file.
+-class DLLX WritableFile {
++class WritableFile {
+  public:
+   WritableFile() { }
+   virtual ~WritableFile();
+@@ -243,7 +243,7 @@ class DLLX WritableFile {
+ };
+ 
+ // An interface for writing log messages.
+-class DLLX Logger {
++class Logger {
+  public:
+   Logger() { }
+   virtual ~Logger();
+@@ -259,7 +259,7 @@ class DLLX Logger {
+ 
+ 
+ // Identifies a locked file.
+-class DLLX FileLock {
++class FileLock {
+  public:
+   FileLock() { }
+   virtual ~FileLock();
+@@ -287,7 +287,7 @@ extern Status ReadFileToString(Env* env, const std::string& fname,
+ // An implementation of Env that forwards all calls to another Env.
+ // May be useful to clients who wish to override just part of the
+ // functionality of another Env.
+-class DLLX EnvWrapper : public Env {
++class EnvWrapper : public Env {
+  public:
+   // Initialize an EnvWrapper that delegates all calls to *t
+   explicit EnvWrapper(Env* t) : target_(t) { }
+diff --git a/include/leveldb/filter_policy.h b/include/leveldb/filter_policy.h
+index c4e1d0f..1fba080 100644
+--- a/include/leveldb/filter_policy.h
++++ b/include/leveldb/filter_policy.h
+@@ -20,9 +20,9 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Slice;
++class Slice;
+ 
+-class DLLX FilterPolicy {
++class FilterPolicy {
+  public:
+   virtual ~FilterPolicy();
+ 
+@@ -63,7 +63,7 @@ class DLLX FilterPolicy {
+ // ignores trailing spaces, it would be incorrect to use a
+ // FilterPolicy (like NewBloomFilterPolicy) that does not ignore
+ // trailing spaces in keys.
+-extern DLLX const FilterPolicy* NewBloomFilterPolicy(int bits_per_key);
++extern const FilterPolicy* NewBloomFilterPolicy(int bits_per_key);
+ 
+ }
+ 
+diff --git a/include/leveldb/iterator.h b/include/leveldb/iterator.h
+index 78f6165..da631ed 100644
+--- a/include/leveldb/iterator.h
++++ b/include/leveldb/iterator.h
+@@ -3,7 +3,7 @@
+ // found in the LICENSE file. See the AUTHORS file for names of contributors.
+ //
+ // An iterator yields a sequence of key/value pairs from a source.
+-// The following class DLLX defines the interface.  Multiple implementations
++// The following class defines the interface.  Multiple implementations
+ // are provided by this library.  In particular, iterators are provided
+ // to access the contents of a Table or a DB.
+ //
+@@ -20,7 +20,7 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Iterator {
++class Iterator {
+  public:
+   Iterator();
+   virtual ~Iterator();
+@@ -76,7 +76,7 @@ class DLLX Iterator {
+   void RegisterCleanup(CleanupFunction function, void* arg1, void* arg2);
+ 
+  private:
+-  struct DLLX Cleanup {
++  struct Cleanup {
+     CleanupFunction function;
+     void* arg1;
+     void* arg2;
+diff --git a/include/leveldb/options.h b/include/leveldb/options.h
+index 913f6c7..bae9c10 100644
+--- a/include/leveldb/options.h
++++ b/include/leveldb/options.h
+@@ -12,17 +12,17 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Cache;
+-class DLLX Comparator;
+-class DLLX Env;
+-class DLLX FilterPolicy;
+-class DLLX Logger;
+-class DLLX Snapshot;
+-class DLLX Compressor;
+-class DLLX DecompressAllocator;
++class Cache;
++class Comparator;
++class Env;
++class FilterPolicy;
++class Logger;
++class Snapshot;
++class Compressor;
++class DecompressAllocator;
+ 
+ // Options to control the behavior of a database (passed to DB::Open)
+-struct DLLX Options {
++struct Options {
+   // -------------------
+   // Parameters that affect behavior
+ 
+@@ -152,7 +152,7 @@ struct DLLX Options {
+ };
+ 
+ // Options that control read operations
+-struct DLLX ReadOptions {
++struct ReadOptions {
+   // If true, all data read from underlying storage will be
+   // verified against corresponding checksums.
+   // Default: false
+@@ -183,7 +183,7 @@ struct DLLX ReadOptions {
+ };
+ 
+ // Options that control write operations
+-struct DLLX WriteOptions {
++struct WriteOptions {
+   // If true, the write will be flushed from the operating system
+   // buffer cache (by calling WritableFile::Sync()) before the write
+   // is considered complete.  If this flag is true, writes will be
+diff --git a/include/leveldb/slice.h b/include/leveldb/slice.h
+index d99fbe8..bc36798 100644
+--- a/include/leveldb/slice.h
++++ b/include/leveldb/slice.h
+@@ -22,7 +22,7 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Slice {
++class Slice {
+  public:
+   // Create an empty slice.
+   Slice() : data_(""), size_(0) { }
+diff --git a/include/leveldb/snappy_compressor.h b/include/leveldb/snappy_compressor.h
+index ca2b4f1..3ab018c 100644
+--- a/include/leveldb/snappy_compressor.h
++++ b/include/leveldb/snappy_compressor.h
+@@ -3,7 +3,7 @@
+ #include "compressor.h"
+ 
+ namespace leveldb {
+-	class DLLX SnappyCompressor : public Compressor 
++	class SnappyCompressor : public Compressor
+ 	{
+ 	public:
+ 
+diff --git a/include/leveldb/status.h b/include/leveldb/status.h
+index c630a99..a772c61 100644
+--- a/include/leveldb/status.h
++++ b/include/leveldb/status.h
+@@ -18,7 +18,7 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Status {
++class Status {
+  public:
+ 	 
+   enum Code {
+diff --git a/include/leveldb/table.h b/include/leveldb/table.h
+index 46fcfb1..a9746c3 100644
+--- a/include/leveldb/table.h
++++ b/include/leveldb/table.h
+@@ -10,18 +10,18 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Block;
+-class DLLX BlockHandle;
+-class DLLX Footer;
+-struct DLLX Options;
+-class DLLX RandomAccessFile;
+-struct DLLX ReadOptions;
+-class DLLX TableCache;
++class Block;
++class BlockHandle;
++class Footer;
++struct Options;
++class RandomAccessFile;
++struct ReadOptions;
++class TableCache;
+ 
+ // A Table is a sorted map from strings to strings.  Tables are
+ // immutable and persistent.  A Table may be safely accessed from
+ // multiple threads without external synchronization.
+-class DLLX Table {
++class Table {
+  public:
+   // Attempt to open the table that is stored in bytes [0..file_size)
+   // of "file", and read the metadata entries necessary to allow
+@@ -56,7 +56,7 @@ class DLLX Table {
+   uint64_t ApproximateOffsetOf(const Slice& key) const;
+ 
+  private:
+-  struct DLLX Rep;
++  struct Rep;
+   Rep* rep_;
+ 
+   explicit Table(Rep* rep) { rep_ = rep; }
+@@ -65,7 +65,7 @@ class DLLX Table {
+   // Calls (*handle_result)(arg, ...) with the entry found after a call
+   // to Seek(key).  May not make such a call if filter policy says
+   // that key is not present.
+-  friend class DLLX TableCache;
++  friend class TableCache;
+   Status InternalGet(
+       const ReadOptions&, const Slice& key,
+       void* arg,
+diff --git a/include/leveldb/table_builder.h b/include/leveldb/table_builder.h
+index 848fac1..0ce6f18 100644
+--- a/include/leveldb/table_builder.h
++++ b/include/leveldb/table_builder.h
+@@ -19,11 +19,11 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX BlockBuilder;
+-class DLLX BlockHandle;
+-class DLLX WritableFile;
++class BlockBuilder;
++class BlockHandle;
++class WritableFile;
+ 
+-class DLLX TableBuilder {
++class TableBuilder {
+  public:
+   // Create a builder that will store the contents of the table it is
+   // building in *file.  Does not close the file.  It is up to the
+@@ -79,7 +79,7 @@ class DLLX TableBuilder {
+   void WriteBlock(BlockBuilder* block, BlockHandle* handle);
+   void WriteRawBlock(const Slice& data, Compressor* compressor, BlockHandle* handle);
+ 
+-  struct DLLX Rep;
++  struct Rep;
+   Rep* rep_;
+ 
+   // No copying allowed
+diff --git a/include/leveldb/write_batch.h b/include/leveldb/write_batch.h
+index c667f87..3b9d217 100644
+--- a/include/leveldb/write_batch.h
++++ b/include/leveldb/write_batch.h
+@@ -27,9 +27,9 @@
+ 
+ namespace leveldb {
+ 
+-class DLLX Slice;
++class Slice;
+ 
+-class DLLX WriteBatch {
++class WriteBatch {
+  public:
+   WriteBatch();
+   ~WriteBatch();
+@@ -50,7 +50,7 @@ class DLLX WriteBatch {
+   size_t ApproximateSize();
+ 
+   // Support for iterating over the contents of a batch.
+-  class DLLX Handler {
++  class Handler {
+    public:
+     virtual ~Handler();
+     virtual void Put(const Slice& key, const Slice& value) = 0;
+diff --git a/include/leveldb/zlib_compressor.h b/include/leveldb/zlib_compressor.h
+index fd9e953..1348946 100644
+--- a/include/leveldb/zlib_compressor.h
++++ b/include/leveldb/zlib_compressor.h
+@@ -5,7 +5,7 @@
+ 
+ namespace leveldb {
+ 
+-	class DLLX ZlibCompressorBase : public Compressor 
++	class ZlibCompressorBase : public Compressor
+ 	{
+ 	public:
+ 		int inflate(const char* input, size_t length, ::std::string &output) const;
+@@ -35,7 +35,7 @@ namespace leveldb {
+ 
+ 	};
+ 
+-	class DLLX ZlibCompressor : public ZlibCompressorBase {
++	class ZlibCompressor : public ZlibCompressorBase {
+ 	public:
+ 		static const int SERIALIZE_ID = 2;
+ 
+@@ -45,7 +45,7 @@ namespace leveldb {
+ 		}
+ 	};
+ 
+-	class DLLX ZlibCompressorRaw : public ZlibCompressorBase {
++	class ZlibCompressorRaw : public ZlibCompressorBase {
+ 	public:
+ 		static const int SERIALIZE_ID = 4;
+ 
+diff --git a/include/leveldb/zopfli_compressor.h b/include/leveldb/zopfli_compressor.h
+index 407e491..b03a562 100644
+--- a/include/leveldb/zopfli_compressor.h
++++ b/include/leveldb/zopfli_compressor.h
+@@ -5,7 +5,7 @@
+ 
+ namespace leveldb {
+ 
+-	class DLLX ZopfliCompressor : public Compressor 
++	class ZopfliCompressor : public Compressor
+ 	{
+ 	public:
+ 		static const int SERIALIZE_ID = 2; //Same as ZLib since it is a replacement
+diff --git a/include/leveldb/zstd_compressor.h b/include/leveldb/zstd_compressor.h
+index 6415928..6274a12 100644
+--- a/include/leveldb/zstd_compressor.h
++++ b/include/leveldb/zstd_compressor.h
+@@ -5,7 +5,7 @@
+ 
+ namespace leveldb {
+ 
+-	class DLLX ZstdCompressor : public Compressor
++	class ZstdCompressor : public Compressor
+ 	{
+ 	public:
+ 		static const int SERIALIZE_ID = 3;
+diff --git a/port/atomic_pointer.h b/port/atomic_pointer.h
+index 28d323c..59afef2 100644
+--- a/port/atomic_pointer.h
++++ b/port/atomic_pointer.h
+@@ -21,6 +21,8 @@
+ #include <stdint.h>
+ #ifdef LEVELDB_ATOMIC_PRESENT
+ #include <atomic>
++#elif defined(OS_MACOSX)
++#include <libkern/OSAtomic.h>
+ #endif
+ #ifdef OS_WIN
+ #include <windows.h>
+@@ -30,9 +32,9 @@
+ 
+ #include <atomic>
+ #endif
+-#ifdef OS_MACOSX
+-#include <libkern/OSAtomic.h>
+-#endif
++//#ifdef OS_MACOSX
++//#include <libkern/OSAtomic.h>
++//#endif
+ 
+ #if defined(_M_X64) || defined(__x86_64__)
+ #define ARCH_CPU_X86_FAMILY 1
+@@ -61,7 +63,11 @@ namespace port {
+ // Mac OS
+ #elif defined(OS_MACOSX)
+ inline void MemoryBarrier() {
+-  OSMemoryBarrier();
++//#if defined(LEVELDB_ATOMIC_PRESENT)
++  std::atomic_thread_fence(std::memory_order_seq_cst);
++//#else
++//  OSMemoryBarrier();
++//#endif  // defined(LEVELDB_ATOMIC_PRESENT)
+ }
+ #define LEVELDB_HAVE_MEMORY_BARRIER
+ 
+diff --git a/util/bloom.cc b/util/bloom.cc
+index e8671d0..bf3e4ca 100644
+--- a/util/bloom.cc
++++ b/util/bloom.cc
+@@ -88,7 +88,7 @@ class BloomFilterPolicy : public FilterPolicy {
+ };
+ }
+ 
+-DLLX const FilterPolicy* NewBloomFilterPolicy(int bits_per_key) {
++const FilterPolicy* NewBloomFilterPolicy(int bits_per_key) {
+   return new BloomFilterPolicy(bits_per_key);
+ }
+ 
+diff --git a/util/cache.cc b/util/cache.cc
+index be36abb..ce46886 100644
+--- a/util/cache.cc
++++ b/util/cache.cc
+@@ -398,7 +398,7 @@ class ShardedLRUCache : public Cache {
+ 
+ }  // end anonymous namespace
+ 
+-DLLX Cache* NewLRUCache(size_t capacity) {
++Cache* NewLRUCache(size_t capacity) {
+   return new ShardedLRUCache(capacity);
+ }
+ 
+diff --git a/util/env_posix.cc b/util/env_posix.cc
+index ca43426..8ecdf92 100644
+--- a/util/env_posix.cc
++++ b/util/env_posix.cc
+@@ -600,7 +600,7 @@ static intptr_t MaxOpenFiles() {
+     open_read_only_file_limit = std::numeric_limits<int>::max();
+   } else {
+     // Allow use of 20% of available file descriptors for read-only files.
+-    open_read_only_file_limit = rlim.rlim_cur / 5;
++    open_read_only_file_limit = static_cast<int>(rlim.rlim_cur) / 5;
+   }
+   return open_read_only_file_limit;
+ }
