@@ -130,8 +130,8 @@ function make_framework() {
     mv libleveldb-SIMULATOR64 Simulator-lib
 
     cd iOS-lib
-    ln -s libz-OS64/libz.a libz.a
-    ln -s libleveldb-OS64/libleveldb.a libleveldb.a
+    cp libz-OS64/libz.a libz.a
+    cp libleveldb-OS64/libleveldb.a libleveldb.a
     cd ..
 
     cd MacOS-lib
@@ -140,8 +140,8 @@ function make_framework() {
     cd ..
 
     cd Simulator-lib
-    ln -s libz-SIMULATOR64/libz.a libz.a
-    ln -s libleveldb-SIMULATOR64/libleveldb.a libleveldb.a
+    cp libz-SIMULATOR64/libz.a libz.a
+    cp libleveldb-SIMULATOR64/libleveldb.a libleveldb.a
     cd ..
 
     xcodebuild -create-xcframework \
