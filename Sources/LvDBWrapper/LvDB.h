@@ -16,6 +16,8 @@
 
 - (BOOL)exportValue:(NSData *)key :(NSString *)path;
 
+- (void)close;
+
 @end
 
 #endif /* LvDB_h */

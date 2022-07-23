@@ -52,6 +52,10 @@ leveldb::WriteOptions writeOptions;
     return self;
 }
 
+- (void)close {
+    delete db;
+}
+
 /* ---------- ---------- ---------- */
 
 - (BOOL)isKeyExist:(NSData *)key {
